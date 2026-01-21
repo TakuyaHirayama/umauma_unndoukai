@@ -18,14 +18,40 @@
       margin: 10px 0;
       border-radius: 8px;
     }
+    .bar {
+      height: 20px;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4facfe, #00f2fe);
+    }
     button {
-      font-size: 16px;
-      padding: 10px 20px;
+      font-size: 18px;
+      padding: 10px 30px;
       margin-top: 20px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
     #result {
-      margin-top: 20px;
+      margin-top: 30px;
+      padding: 25px;
+      text-align: center;
+      font-size: 30px;
       font-weight: bold;
+      background: linear-gradient(135deg, #ffe259, #ffa751);
+      border-radius: 15px;
+      display: none;
+    }
+    #stats {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -33,6 +59,7 @@
 
 <h1>🏇 うまうま運動会 🏇</h1>
 
+<div id="stats"></div>
 <div id="horses"></div>
 
 <button onclick="startRace()">レース開始！</button>
@@ -40,50 +67,68 @@
 <div id="result"></div>
 
 <script>
-const words = [
-  "さくら", "かぜ", "ほし", "やま", "かわ",
-  "ひかり", "ゆき", "そら", "つき", "たけ"
-];
+const words = ["さくら","かぜ","ほし","やま","かわ","ひかり","ゆき","そら","つき","たけ"];
 
 let horses = [];
+let raceDistance = 0;
+let totalRaces = 0;
+let hitRaces = 0;
 
-// ランダム整数
+// 乱数
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// 馬を生成
+// 馬生成
 function generateHorses() {
   horses = [];
+  raceDistance = rand(800, 2000);
+
   for (let i = 0; i < 4; i++) {
     const name =
       words[rand(0, words.length - 1)] +
       words[rand(0, words.length - 1)];
 
-    const power = rand(50, 100);   // 能力値
-    const distance = rand(800, 2000); // 距離
+    const power = rand(50, 100);
 
-    horses.push({ name, power, distance });
+    horses.push({
+      name,
+      power,
+      progress: 0,
+      score: 0
+    });
   }
 }
 
 // 表示
 function displayHorses() {
   const div = document.getElementById("horses");
-  div.innerHTML = "";
+  div.innerHTML = `<p><strong>レース距離：${raceDistance}m</strong></p>`;
+
   horses.forEach((h, i) => {
     div.innerHTML += `
       <div class="horse">
         <input type="radio" name="predict" value="${i}">
         <strong>${h.name}</strong><br>
-        能力値：${h.power}<br>
-        距離：${h.distance}m
+        能力値：${h.power}
+        <div class="bar">
+          <div class="bar-inner" id="bar${i}"></div>
+        </div>
       </div>
     `;
   });
+
+  updateStats();
 }
 
-// レース
+// 的中率表示
+function updateStats() {
+  const rate = totalRaces === 0 ? 0 : Math.round((hitRaces / totalRaces) * 100);
+  document.getElementById("stats").innerHTML =
+    `🎯 的中率：${rate}%（${hitRaces}/${totalRaces}）`;
+}
+
+// レース開始
 function startRace() {
   const checked = document.querySelector('input[name="predict"]:checked');
   if (!checked) {
@@ -92,24 +137,53 @@ function startRace() {
   }
 
   horses.forEach(h => {
-    // 能力 + 乱数 - 距離補正
-    h.score = h.power + rand(0, 50) - h.distance / 50;
+    h.score = h.power + rand(0, 50) - raceDistance / 50;
+    h.progress = 0;
   });
 
-  horses.sort((a, b) => b.score - a.score);
+  const interval = setInterval(() => {
+    horses.forEach((h, i) => {
+      h.progress += rand(1, 5);
+      document.getElementById(`bar${i}`).style.width =
+        Math.min(h.progress, 100) + "%";
+    });
 
+    if (horses.some(h => h.progress >= 100)) {
+      clearInterval(interval);
+      finishRace(checked.value);
+    }
+  }, 100);
+}
+
+// 結果処理
+function finishRace(predictedIndex) {
+  horses.sort((a, b) => b.score - a.score);
   const winner = horses[0];
-  const predicted = horses[checked.value];
+  const predicted = horses[predictedIndex];
+
+  totalRaces++;
+  if (winner.name === predicted.name) hitRaces++;
 
   const resultDiv = document.getElementById("result");
+  resultDiv.style.display = "block";
   resultDiv.innerHTML = `
-    🥇 優勝：${winner.name}<br>
+    🏆 優勝馬 🏆<br><br>
+    ${winner.name}<br><br>
     ${
       winner.name === predicted.name
-        ? "🎉 予想的中！すごいじゃナイ✨"
-        : "💥 ハズレ…次は当てなサイ😏"
-    }
+        ? "🎉 予想的中！！お見事！！ 🎉"
+        : "💥 予想ハズレ…次は当てなサイ 😏"
+    }<br><br>
+    <span style="font-size:16px;">次のレース準備中…</span>
   `;
+
+  updateStats();
+
+  setTimeout(() => {
+    resultDiv.style.display = "none";
+    generateHorses();
+    displayHorses();
+  }, 3500);
 }
 
 // 初期化
@@ -119,4 +193,3 @@ displayHorses();
 
 </body>
 </html>
-
