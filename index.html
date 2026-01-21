@@ -2,183 +2,180 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ウマウマ運動会</title>
+<title>🐴 うまうま運動会 🐴</title>
+
 <style>
 body {
-  background: radial-gradient(circle, #222, #000);
-  color: white;
-  font-family: sans-serif;
+  background: linear-gradient(180deg,#fff0f6,#e0f7ff);
+  font-family: "Rounded Mplus 1c", sans-serif;
   text-align: center;
+  color: #444;
 }
-h1 { font-size: 42px; }
-.horse {
+
+h1 {
+  font-size: 44px;
+  color: #ff6fa5;
+  text-shadow: 2px 2px #fff;
+}
+
+.card {
+  background: white;
+  border-radius: 25px;
+  padding: 20px;
   margin: 15px auto;
   width: 85%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
+
+.horse-name {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
 .bar {
-  height: 26px;
-  background: #444;
+  background: #eee;
+  height: 24px;
   border-radius: 20px;
   overflow: hidden;
 }
+
 .progress {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #00ffcc, #00ff66, #ffee00);
-  transition: width 0.1s;
+  background: linear-gradient(90deg,#ff9a9e,#fad0c4,#fbc2eb,#a1c4fd);
 }
-button, select {
-  font-size: 18px;
-  padding: 8px 15px;
-  margin: 10px;
+
+select {
+  font-size: 20px;
+  padding: 8px;
+  border-radius: 15px;
 }
+
 #result {
-  font-size: 48px;
-  margin-top: 30px;
-  text-shadow: 0 0 10px gold;
+  font-size: 52px;
+  margin-top: 25px;
+  color: #ff7b00;
+  text-shadow: 0 0 12px gold;
 }
+
 #rate {
   font-size: 22px;
-  margin-top: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🏇 ウマウマ運動会 🏁</h1>
+<h1>🐴 うまうま運動会 🏁</h1>
 
-<div id="info"></div>
+<div class="card" id="info"></div>
 
 <select id="bet"></select>
-<button onclick="startRace()">レース開始</button>
 
 <div id="track"></div>
+
 <div id="result"></div>
 <div id="rate"></div>
 
 <script>
-const WORDS = [
-  "雷","風","影","炎","星","月","鉄","疾","夢","嵐",
-  "桜","銀","蒼","紅","夜","光","牙","雲"
-];
+const A = ["もふもふ","ぽよぽよ","ふわふわ","きらきら","にこにこ"];
+const B = ["さくら","だいふく","にんじん","おもち","らいと"];
 
-let horses = [];
-let positions = [];
-let stamina = [];
-let goal = 0;
-let finished = false;
-let winner = null;
+let horses=[],pos=[],stamina=[],goal,winner,finished=false;
 
-let total = Number(localStorage.getItem("total")) || 0;
-let hit = Number(localStorage.getItem("hit")) || 0;
+let total=Number(localStorage.getItem("t"))||0;
+let hit=Number(localStorage.getItem("h"))||0;
 
-function randomName() {
-  return WORDS[Math.floor(Math.random()*WORDS.length)] +
-         WORDS[Math.floor(Math.random()*WORDS.length)];
-}
+const randName=()=>A[Math.floor(Math.random()*A.length)]
+              +B[Math.floor(Math.random()*B.length)];
 
-function setupRace() {
-  horses = [];
-  for (let i=0;i<4;i++) {
+function newRace(){
+  horses=[];
+  for(let i=0;i<4;i++){
     horses.push({
-      name: randomName(),
-      speed: 4 + Math.random()*3,
-      maxStamina: 80 + Math.random()*40
+      name:randName(),
+      speed:4+Math.random()*3,
+      maxStamina:90+Math.random()*40
     });
   }
-  goal = 800 + Math.random()*600;
-}
+  goal=700+Math.random()*500;
+  pos=[0,0,0,0];
+  stamina=horses.map(h=>h.maxStamina);
+  finished=false;
+  winner=null;
 
-function startRace() {
-  setupRace();
-  positions = [0,0,0,0];
-  stamina = horses.map(h=>h.maxStamina);
-  finished = false;
-  winner = null;
-
-  document.getElementById("result").textContent = "";
-  document.getElementById("rate").textContent = "";
-
-  document.getElementById("info").textContent =
+  document.getElementById("info").textContent=
     `🏁 今回の距離：${Math.floor(goal)}m`;
 
-  const bet = document.getElementById("bet");
-  bet.innerHTML = "";
+  const bet=document.getElementById("bet");
+  bet.innerHTML="";
   horses.forEach((h,i)=>{
-    const o = document.createElement("option");
-    o.value = i;
-    o.textContent = `${h.name}（速:${h.speed.toFixed(1)} 耐:${Math.floor(h.maxStamina)}）`;
+    const o=document.createElement("option");
+    o.value=i;
+    o.textContent=`${h.name}（速${h.speed.toFixed(1)}）`;
     bet.appendChild(o);
   });
 
-  const track = document.getElementById("track");
-  track.innerHTML = "";
+  const track=document.getElementById("track");
+  track.innerHTML="";
   horses.forEach((h,i)=>{
-    const div = document.createElement("div");
-    div.className = "horse";
-    div.innerHTML = `
-      <div>${h.name}</div>
+    const c=document.createElement("div");
+    c.className="card";
+    c.innerHTML=`
+      <div class="horse-name">${h.name}</div>
       <div class="bar"><div class="progress" id="p${i}"></div></div>
     `;
-    track.appendChild(div);
+    track.appendChild(c);
   });
 
-  requestAnimationFrame(runRace);
+  document.getElementById("result").textContent="";
+  document.getElementById("rate").textContent="";
+
+  requestAnimationFrame(run);
 }
 
-function runRace() {
-  if (finished) return;
+function run(){
+  if(finished)return;
 
   horses.forEach((h,i)=>{
-    if (positions[i] >= goal) return;
+    if(pos[i]>=goal)return;
 
-    stamina[i] -= 0.25;
+    stamina[i]-=0.25;
+    let s=Math.max(0.35,stamina[i]/h.maxStamina);
 
-    let staminaRate = stamina[i] / h.maxStamina;
-    staminaRate = Math.max(0.3, staminaRate); // ⭐ 最低保証
+    pos[i]+=h.speed*(0.9+Math.random()*0.3)*s;
+    document.getElementById(`p${i}`).style.width=
+      Math.min(pos[i]/goal*100,100)+"%";
 
-    const move =
-      h.speed *
-      (0.85 + Math.random()*0.3) *
-      staminaRate;
-
-    positions[i] += move;
-
-    const percent = Math.min(positions[i]/goal*100, 100);
-    document.getElementById(`p${i}`).style.width = percent + "%";
-
-    if (positions[i] >= goal && !finished) {
-      finished = true;
-      winner = i;
+    if(pos[i]>=goal&&!finished){
+      finished=true;
+      winner=i;
       showResult();
     }
   });
 
-  if (!finished) requestAnimationFrame(runRace);
+  if(!finished)requestAnimationFrame(run);
 }
 
-function showResult() {
-  const bet = Number(document.getElementById("bet").value);
+function showResult(){
+  const bet=Number(document.getElementById("bet").value);
   total++;
+  if(bet===winner)hit++;
 
-  if (bet === winner) hit++;
+  localStorage.setItem("t",total);
+  localStorage.setItem("h",hit);
 
-  localStorage.setItem("total", total);
-  localStorage.setItem("hit", hit);
+  document.getElementById("result").textContent=
+    `🏆 ${horses[winner].name} かちっ！`;
 
-  document.getElementById("result").textContent =
-    `🏆 勝者：${horses[winner].name} 🏆`;
+  document.getElementById("rate").textContent=
+    `🎯 的中率 ${hit}/${total}`;
 
-  document.getElementById("rate").textContent =
-    bet === winner
-      ? `🎉 的中！！（${hit}/${total}）`
-      : `💥 ハズレ！（${hit}/${total}）`;
+  setTimeout(newRace,3000); // ⭐ 自動次レース
 }
-</script>
 
-</body>
-</html>
+newRace();
+</script>
 
 </body>
 </html>
