@@ -1,194 +1,141 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>うまうま運動会</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .horse {
-      background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-    }
-    .bar {
-      height: 20px;
-      background: #ddd;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-top: 5px;
-    }
-    .bar-inner {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #4facfe, #00f2fe);
-    }
-    button {
-      font-size: 18px;
-      padding: 10px 30px;
-      margin-top: 20px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    #result {
-      margin-top: 30px;
-      padding: 25px;
-      text-align: center;
-      font-size: 30px;
-      font-weight: bold;
-      background: linear-gradient(135deg, #ffe259, #ffa751);
-      border-radius: 15px;
-      display: none;
-    }
-    #stats {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 16px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>ウマウマ運動会</title>
+<style>
+body {
+  background: linear-gradient(#111, #333);
+  color: white;
+  font-family: sans-serif;
+  text-align: center;
+}
+.horse {
+  margin: 10px auto;
+  width: 80%;
+}
+.bar {
+  height: 28px;
+  background: #444;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.progress {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, gold, orange, red);
+  transition: width 0.1s;
+}
+#result {
+  font-size: 40px;
+  margin-top: 30px;
+}
+button {
+  font-size: 20px;
+  padding: 10px 20px;
+}
+</style>
 </head>
+
 <body>
 
-<h1>🏇 うまうま運動会 🏇</h1>
+<h1>🏇 ウマウマ運動会 🏁</h1>
 
-<div id="stats"></div>
-<div id="horses"></div>
+<select id="bet">
+  <option value="0">サンダー</option>
+  <option value="1">ブレイズ</option>
+  <option value="2">ミラージュ</option>
+</select>
 
-<button onclick="startRace()">レース開始！</button>
+<button onclick="startRace()">レース開始</button>
 
+<div id="track"></div>
 <div id="result"></div>
+<div id="rate"></div>
 
 <script>
-const words = ["さくら","かぜ","ほし","やま","かわ","ひかり","ゆき","そら","つき","たけ"];
+const GOAL = 1000;
 
-let horses = [];
-let raceDistance = 0;
-let totalRaces = 0;
-let hitRaces = 0;
+let horses = [
+  { name:"サンダー", speed:6, stamina:100 },
+  { name:"ブレイズ", speed:5.5, stamina:110 },
+  { name:"ミラージュ", speed:6.2, stamina:90 }
+];
 
-// 乱数
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+let positions, stamina, finished, winner;
 
-// 馬生成
-function generateHorses() {
-  horses = [];
-  raceDistance = rand(800, 2000);
-
-  for (let i = 0; i < 4; i++) {
-    const name =
-      words[rand(0, words.length - 1)] +
-      words[rand(0, words.length - 1)];
-
-    const power = rand(50, 100);
-
-    horses.push({
-      name,
-      power,
-      progress: 0,
-      score: 0
-    });
-  }
-}
-
-// 表示
-function displayHorses() {
-  const div = document.getElementById("horses");
-  div.innerHTML = `<p><strong>レース距離：${raceDistance}m</strong></p>`;
-
-  horses.forEach((h, i) => {
-    div.innerHTML += `
-      <div class="horse">
-        <input type="radio" name="predict" value="${i}">
-        <strong>${h.name}</strong><br>
-        能力値：${h.power}
-        <div class="bar">
-          <div class="bar-inner" id="bar${i}"></div>
-        </div>
-      </div>
-    `;
-  });
-
-  updateStats();
-}
-
-// 的中率表示
-function updateStats() {
-  const rate = totalRaces === 0 ? 0 : Math.round((hitRaces / totalRaces) * 100);
-  document.getElementById("stats").innerHTML =
-    `🎯 的中率：${rate}%（${hitRaces}/${totalRaces}）`;
-}
-
-// レース開始
 function startRace() {
-  const checked = document.querySelector('input[name="predict"]:checked');
-  if (!checked) {
-    alert("予想を選びなサイ😤");
-    return;
-  }
+  // 初期化
+  positions = [0,0,0];
+  stamina = horses.map(h => h.stamina);
+  finished = false;
+  winner = null;
 
-  horses.forEach(h => {
-    h.score = h.power + rand(0, 50) - raceDistance / 50;
-    h.progress = 0;
+  document.getElementById("result").textContent = "";
+  document.getElementById("rate").textContent = "";
+
+  const track = document.getElementById("track");
+  track.innerHTML = "";
+
+  horses.forEach((h,i)=>{
+    const div = document.createElement("div");
+    div.className = "horse";
+    div.innerHTML = `
+      <div>${h.name}</div>
+      <div class="bar"><div class="progress" id="p${i}"></div></div>
+    `;
+    track.appendChild(div);
   });
 
-  const interval = setInterval(() => {
-    horses.forEach((h, i) => {
-      h.progress += rand(1, 5);
-      document.getElementById(`bar${i}`).style.width =
-        Math.min(h.progress, 100) + "%";
-    });
+  requestAnimationFrame(runRace);
+}
 
-    if (horses.some(h => h.progress >= 100)) {
-      clearInterval(interval);
-      finishRace(checked.value);
+function runRace() {
+  if (finished) return;
+
+  horses.forEach((h,i)=>{
+    if (positions[i] >= GOAL) return;
+
+    // スタミナ倍率
+    let staminaRate = stamina[i] / h.stamina;
+    if (staminaRate < 0.5) staminaRate *= 0.7;
+
+    const move =
+      h.speed *
+      (0.8 + Math.random()*0.4) *
+      staminaRate;
+
+    positions[i] += move;
+    stamina[i] -= 0.3;
+
+    // バー更新
+    const percent = Math.min(positions[i] / GOAL * 100, 100);
+    document.getElementById(`p${i}`).style.width = percent + "%";
+
+    if (positions[i] >= GOAL && !finished) {
+      finished = true;
+      winner = i;
+      showResult();
     }
-  }, 100);
+  });
+
+  if (!finished) {
+    requestAnimationFrame(runRace);
+  }
 }
 
-// 結果処理
-function finishRace(predictedIndex) {
-  horses.sort((a, b) => b.score - a.score);
-  const winner = horses[0];
-  const predicted = horses[predictedIndex];
+function showResult() {
+  const bet = Number(document.getElementById("bet").value);
+  const winHorse = horses[winner].name;
 
-  totalRaces++;
-  if (winner.name === predicted.name) hitRaces++;
+  document.getElementById("result").textContent =
+    `🏆 勝者：${winHorse} 🏆`;
 
-  const resultDiv = document.getElementById("result");
-  resultDiv.style.display = "block";
-  resultDiv.innerHTML = `
-    🏆 優勝馬 🏆<br><br>
-    ${winner.name}<br><br>
-    ${
-      winner.name === predicted.name
-        ? "🎉 予想的中！！お見事！！ 🎉"
-        : "💥 予想ハズレ…次は当てなサイ 😏"
-    }<br><br>
-    <span style="font-size:16px;">次のレース準備中…</span>
-  `;
-
-  updateStats();
-
-  setTimeout(() => {
-    resultDiv.style.display = "none";
-    generateHorses();
-    displayHorses();
-  }, 3500);
+  document.getElementById("rate").textContent =
+    bet === winner
+      ? "🎉 的中！！おめでとウ！！"
+      : "💥 ハズレ…次は勝つヨ😤";
 }
-
-// 初期化
-generateHorses();
-displayHorses();
 </script>
 
 </body>
