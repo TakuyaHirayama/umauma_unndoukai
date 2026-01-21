@@ -1,1 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>うまうま運動会</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .horse {
+      background: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin-top: 20px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🏇 うまうま運動会 🏇</h1>
+
+<div id="horses"></div>
+
+<button onclick="startRace()">レース開始！</button>
+
+<div id="result"></div>
+
+<script>
+const words = [
+  "さくら", "かぜ", "ほし", "やま", "かわ",
+  "ひかり", "ゆき", "そら", "つき", "たけ"
+];
+
+let horses = [];
+
+// ランダム整数
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// 馬を生成
+function generateHorses() {
+  horses = [];
+  for (let i = 0; i < 4; i++) {
+    const name =
+      words[rand(0, words.length - 1)] +
+      words[rand(0, words.length - 1)];
+
+    const power = rand(50, 100);   // 能力値
+    const distance = rand(800, 2000); // 距離
+
+    horses.push({ name, power, distance });
+  }
+}
+
+// 表示
+function displayHorses() {
+  const div = document.getElementById("horses");
+  div.innerHTML = "";
+  horses.forEach((h, i) => {
+    div.innerHTML += `
+      <div class="horse">
+        <input type="radio" name="predict" value="${i}">
+        <strong>${h.name}</strong><br>
+        能力値：${h.power}<br>
+        距離：${h.distance}m
+      </div>
+    `;
+  });
+}
+
+// レース
+function startRace() {
+  const checked = document.querySelector('input[name="predict"]:checked');
+  if (!checked) {
+    alert("予想を選びなサイ😤");
+    return;
+  }
+
+  horses.forEach(h => {
+    // 能力 + 乱数 - 距離補正
+    h.score = h.power + rand(0, 50) - h.distance / 50;
+  });
+
+  horses.sort((a, b) => b.score - a.score);
+
+  const winner = horses[0];
+  const predicted = horses[checked.value];
+
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerHTML = `
+    🥇 優勝：${winner.name}<br>
+    ${
+      winner.name === predicted.name
+        ? "🎉 予想的中！すごいじゃナイ✨"
+        : "💥 ハズレ…次は当てなサイ😏"
+    }
+  `;
+}
+
+// 初期化
+generateHorses();
+displayHorses();
+</script>
+
+</body>
+</html>
 
