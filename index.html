@@ -5,17 +5,18 @@
 <title>ウマウマ運動会</title>
 <style>
 body {
-  background: linear-gradient(#111, #333);
+  background: radial-gradient(circle, #222, #000);
   color: white;
   font-family: sans-serif;
   text-align: center;
 }
+h1 { font-size: 42px; }
 .horse {
-  margin: 10px auto;
-  width: 80%;
+  margin: 15px auto;
+  width: 85%;
 }
 .bar {
-  height: 28px;
+  height: 26px;
   background: #444;
   border-radius: 20px;
   overflow: hidden;
@@ -23,16 +24,22 @@ body {
 .progress {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, gold, orange, red);
+  background: linear-gradient(90deg, #00ffcc, #00ff66, #ffee00);
   transition: width 0.1s;
 }
-#result {
-  font-size: 40px;
-  margin-top: 30px;
+button, select {
+  font-size: 18px;
+  padding: 8px 15px;
+  margin: 10px;
 }
-button {
-  font-size: 20px;
-  padding: 10px 20px;
+#result {
+  font-size: 48px;
+  margin-top: 30px;
+  text-shadow: 0 0 10px gold;
+}
+#rate {
+  font-size: 22px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -41,12 +48,9 @@ button {
 
 <h1>🏇 ウマウマ運動会 🏁</h1>
 
-<select id="bet">
-  <option value="0">サンダー</option>
-  <option value="1">ブレイズ</option>
-  <option value="2">ミラージュ</option>
-</select>
+<div id="info"></div>
 
+<select id="bet"></select>
 <button onclick="startRace()">レース開始</button>
 
 <div id="track"></div>
@@ -54,29 +58,62 @@ button {
 <div id="rate"></div>
 
 <script>
-const GOAL = 1000;
-
-let horses = [
-  { name:"サンダー", speed:6, stamina:100 },
-  { name:"ブレイズ", speed:5.5, stamina:110 },
-  { name:"ミラージュ", speed:6.2, stamina:90 }
+const WORDS = [
+  "雷","風","影","炎","星","月","鉄","疾","夢","嵐",
+  "桜","銀","蒼","紅","夜","光","牙","雲"
 ];
 
-let positions, stamina, finished, winner;
+let horses = [];
+let positions = [];
+let stamina = [];
+let goal = 0;
+let finished = false;
+let winner = null;
+
+let total = Number(localStorage.getItem("total")) || 0;
+let hit = Number(localStorage.getItem("hit")) || 0;
+
+function randomName() {
+  return WORDS[Math.floor(Math.random()*WORDS.length)] +
+         WORDS[Math.floor(Math.random()*WORDS.length)];
+}
+
+function setupRace() {
+  horses = [];
+  for (let i=0;i<4;i++) {
+    horses.push({
+      name: randomName(),
+      speed: 4 + Math.random()*3,
+      maxStamina: 80 + Math.random()*40
+    });
+  }
+  goal = 800 + Math.random()*600;
+}
 
 function startRace() {
-  // 初期化
-  positions = [0,0,0];
-  stamina = horses.map(h => h.stamina);
+  setupRace();
+  positions = [0,0,0,0];
+  stamina = horses.map(h=>h.maxStamina);
   finished = false;
   winner = null;
 
   document.getElementById("result").textContent = "";
   document.getElementById("rate").textContent = "";
 
+  document.getElementById("info").textContent =
+    `🏁 今回の距離：${Math.floor(goal)}m`;
+
+  const bet = document.getElementById("bet");
+  bet.innerHTML = "";
+  horses.forEach((h,i)=>{
+    const o = document.createElement("option");
+    o.value = i;
+    o.textContent = `${h.name}（速:${h.speed.toFixed(1)} 耐:${Math.floor(h.maxStamina)}）`;
+    bet.appendChild(o);
+  });
+
   const track = document.getElementById("track");
   track.innerHTML = "";
-
   horses.forEach((h,i)=>{
     const div = document.createElement("div");
     div.className = "horse";
@@ -94,49 +131,54 @@ function runRace() {
   if (finished) return;
 
   horses.forEach((h,i)=>{
-    if (positions[i] >= GOAL) return;
+    if (positions[i] >= goal) return;
 
-    // スタミナ倍率
-    let staminaRate = stamina[i] / h.stamina;
-    if (staminaRate < 0.5) staminaRate *= 0.7;
+    stamina[i] -= 0.25;
+
+    let staminaRate = stamina[i] / h.maxStamina;
+    staminaRate = Math.max(0.3, staminaRate); // ⭐ 最低保証
 
     const move =
       h.speed *
-      (0.8 + Math.random()*0.4) *
+      (0.85 + Math.random()*0.3) *
       staminaRate;
 
     positions[i] += move;
-    stamina[i] -= 0.3;
 
-    // バー更新
-    const percent = Math.min(positions[i] / GOAL * 100, 100);
+    const percent = Math.min(positions[i]/goal*100, 100);
     document.getElementById(`p${i}`).style.width = percent + "%";
 
-    if (positions[i] >= GOAL && !finished) {
+    if (positions[i] >= goal && !finished) {
       finished = true;
       winner = i;
       showResult();
     }
   });
 
-  if (!finished) {
-    requestAnimationFrame(runRace);
-  }
+  if (!finished) requestAnimationFrame(runRace);
 }
 
 function showResult() {
   const bet = Number(document.getElementById("bet").value);
-  const winHorse = horses[winner].name;
+  total++;
+
+  if (bet === winner) hit++;
+
+  localStorage.setItem("total", total);
+  localStorage.setItem("hit", hit);
 
   document.getElementById("result").textContent =
-    `🏆 勝者：${winHorse} 🏆`;
+    `🏆 勝者：${horses[winner].name} 🏆`;
 
   document.getElementById("rate").textContent =
     bet === winner
-      ? "🎉 的中！！おめでとウ！！"
-      : "💥 ハズレ…次は勝つヨ😤";
+      ? `🎉 的中！！（${hit}/${total}）`
+      : `💥 ハズレ！（${hit}/${total}）`;
 }
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
